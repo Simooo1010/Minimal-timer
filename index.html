@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Timer</title>
+  <style>
+    :root {
+      --bg-color: #f7f7f7;
+      --text-color: #2c2c2c;
+      --muted-text: #767676;
+      --button-bg: #eaeaea;
+      --button-hover: #dfdfdf;
+      --button-active: #d0d0d0;
+      --accent-color: #555555;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --muted-text: #a0a0a0;
+        --button-bg: #222222;
+        --button-hover: #2e2e2e;
+        --button-active: #3a3a3a;
+        --accent-color: #888888;
+      }
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+      user-select: none;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .timer-display {
+      font-size: 4.5rem;
+      font-weight: 300;
+      letter-spacing: -0.05em;
+      margin-bottom: 0.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .phase-indicator {
+      font-size: 0.9rem;
+      color: var(--muted-text);
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    button {
+      background-color: var(--button-bg);
+      color: var(--text-color);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 140px;
+      transition: background-color 0.2s, opacity 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--button-hover);
+    }
+
+    button:active {
+      background-color: var(--button-active);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Small dot indicators for sequence progress */
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--button-bg);
+      transition: background-color 0.3s;
+    }
+
+    .dot.active {
+      background-color: var(--accent-color);
+    }
+
+    /* Passcode Gate Styling */
+    #passcode-gate {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .passcode-container {
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    .passcode-title {
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .passcode-subtitle {
+      font-size: 0.9rem;
+      color: var(--muted-text);
+      margin-bottom: 2rem;
+      line-height: 1.4;
+    }
+
+    .passcode-input-wrapper {
+      position: relative;
+      margin-bottom: 1.25rem;
+      width: 100%;
+    }
+
+    #passcode-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid var(--button-bg);
+      border-radius: 6px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      outline: none;
+      box-sizing: border-box;
+      text-align: center;
+      letter-spacing: 0.15em;
+      transition: border-color 0.2s;
+    }
+
+    #passcode-input::placeholder {
+      letter-spacing: normal;
+    }
+
+    #passcode-input:focus {
+      border-color: var(--accent-color);
+    }
+
+    .passcode-btn {
+      width: 100%;
+      background-color: var(--button-bg);
+      color: var(--text-color);
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .passcode-btn:hover {
+      background-color: var(--button-hover);
+    }
+
+    .passcode-btn:active {
+      background-color: var(--button-active);
+    }
+
+    #passcode-error {
+      color: #ff4d4d;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+      min-height: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="passcode-gate">
+    <script>
+      if (sessionStorage.getItem('app_unlocked') === 'true') {
+        document.getElementById('passcode-gate').style.display = 'none';
+      }
+    </script>
+    <div class="passcode-container">
+      <div class="passcode-title">Private Space</div>
+      <div class="passcode-subtitle">Please enter the passcode to access this application.</div>
+      <div class="passcode-input-wrapper">
+        <input type="password" id="passcode-input" placeholder="••••••••" autocomplete="current-password" autofocus />
+      </div>
+      <button class="passcode-btn" id="passcode-submit-btn">Access</button>
+      <div id="passcode-error" class="hidden"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="dots" id="dots-container">
+      <div class="dot active" title="2 Minutes"></div>
+      <div class="dot" title="13 Minutes"></div>
+      <div class="dot" title="5 Minutes"></div>
+    </div>
+    <div class="phase-indicator" id="phase-label">2 Minutes</div>
+    <div class="timer-display" id="time-display">02:00</div>
+    
+    <div class="controls">
+      <button id="primary-btn">Start</button>
+      <button id="stop-btn" class="hidden">Stop</button>
+    </div>
+  </div>
+
+  <script>
+    // Available timer sequences
+    const SEQUENCES = [
+      [
+        { duration: 2, label: '2 Minutes' },
+        { duration: 13, label: '13 Minutes' },
+        { duration: 5, label: '5 Minutes' }
+      ],
+      [
+        { duration: 1.5, label: '1:30 Minutes' },
+        { duration: 10, label: '10 Minutes' },
+        { duration: 3.5, label: '3:30 Minutes' }
+      ]
+    ];
+    let currentSequenceIndex = 0;
+    let currentPhaseIndex = 0;
+    
+    let timerId = null;
+    let secondsRemaining = SEQUENCES[currentSequenceIndex][currentPhaseIndex].duration * 60;
+    let isRunning = false;
+
+    const phaseLabel = document.getElementById('phase-label');
+    const timeDisplay = document.getElementById('time-display');
+    const primaryBtn = document.getElementById('primary-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const dots = document.querySelectorAll('.dot');
+
+    function updateDisplay() {
+      const minutes = Math.floor(secondsRemaining / 60);
+      const seconds = secondsRemaining % 60;
+      timeDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      // Update browser/tab title
+      document.title = `${timeDisplay.textContent} - Timer`;
+    }
+
+    function updatePhaseInfo() {
+      const currentSequence = SEQUENCES[currentSequenceIndex];
+      const phase = currentSequence[currentPhaseIndex];
+      phaseLabel.textContent = phase.label;
+      
+      dots.forEach((dot, index) => {
+        dot.title = currentSequence[index].label;
+        if (index === currentPhaseIndex) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.remove('active');
+        }
+      });
+    }
+
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Simple low-stimulation two-tone gentle chime
+        const playTone = (freq, duration, startTime) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          
+          gain.gain.setValueAtTime(0.15, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+          
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        };
+        
+        const now = audioCtx.currentTime;
+        playTone(523.25, 0.4, now); // C5
+        playTone(659.25, 0.6, now + 0.25); // E5
+      } catch (e) {
+        console.error("Audio Context playback failed", e);
+      }
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      primaryBtn.textContent = 'Pause';
+      stopBtn.classList.remove('hidden');
+
+      timerId = setInterval(() => {
+        secondsRemaining--;
+        updateDisplay();
+
+        if (secondsRemaining <= 0) {
+          clearInterval(timerId);
+          isRunning = false;
+          playBeep();
+          advancePhase();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      if (!isRunning) return;
+      clearInterval(timerId);
+      isRunning = false;
+      primaryBtn.textContent = 'Resume';
+    }
+
+    function stopTimer() {
+      clearInterval(timerId);
+      isRunning = false;
+      timerId = null;
+      primaryBtn.textContent = 'Start';
+      stopBtn.classList.add('hidden');
+      resetPhase(currentPhaseIndex);
+    }
+
+    function resetPhase(index) {
+      currentPhaseIndex = index;
+      secondsRemaining = SEQUENCES[currentSequenceIndex][currentPhaseIndex].duration * 60;
+      updatePhaseInfo();
+      updateDisplay();
+    }
+
+    function advancePhase() {
+      const currentSequence = SEQUENCES[currentSequenceIndex];
+      currentPhaseIndex = (currentPhaseIndex + 1) % currentSequence.length;
+      resetPhase(currentPhaseIndex);
+      // Auto-start the next phase
+      startTimer();
+    }
+
+    primaryBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      stopTimer();
+    });
+
+    // Listen for Alt+Shift+K to toggle sequences
+    window.addEventListener('keydown', (event) => {
+      if (event.altKey && event.shiftKey && event.code === 'KeyK') {
+        event.preventDefault();
+        currentSequenceIndex = (currentSequenceIndex + 1) % SEQUENCES.length;
+        
+        // Reset state entirely
+        clearInterval(timerId);
+        isRunning = false;
+        timerId = null;
+        primaryBtn.textContent = 'Start';
+        stopBtn.classList.add('hidden');
+        resetPhase(0);
+      }
+    });
+
+    // Passcode Gate Logic
+    const isUnlocked = sessionStorage.getItem('app_unlocked') === 'true';
+    if (isUnlocked) {
+      document.getElementById('passcode-gate').classList.add('hidden');
+    }
+
+    async function checkPasscode() {
+      const input = document.getElementById('passcode-input');
+      const submitBtn = document.getElementById('passcode-submit-btn');
+      const errorEl = document.getElementById('passcode-error');
+      
+      const entered = input.value;
+      if (!entered) return;
+
+      errorEl.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying...';
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: entered })
+        });
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem('app_unlocked', 'true');
+          document.getElementById('passcode-gate').classList.add('hidden');
+        } else {
+          errorEl.textContent = data.error || 'Invalid passcode';
+          errorEl.classList.remove('hidden');
+          input.value = '';
+          input.focus();
+        }
+      } catch (err) {
+        console.error('Authentication error:', err);
+        errorEl.textContent = 'Connection error. Please try again.';
+        errorEl.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Access';
+      }
+    }
+
+    document.getElementById('passcode-submit-btn').addEventListener('click', checkPasscode);
+    document.getElementById('passcode-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        checkPasscode();
+      }
+    });
+
+    // Initialize display
+    resetPhase(0);
+  </script>
+</body>
+</html>
