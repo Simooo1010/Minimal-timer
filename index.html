@@ -206,6 +206,22 @@
       margin-top: 1rem;
       min-height: 1.25rem;
     }
+
+    .mobile-sequence-toggle {
+      font-size: 0.85rem;
+      color: var(--muted-text);
+      margin-top: 2rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+
+    .mobile-sequence-toggle:active {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -240,6 +256,7 @@
       <button id="primary-btn">Start</button>
       <button id="stop-btn" class="hidden">Stop</button>
     </div>
+    <div id="sequence-toggle-btn" class="mobile-sequence-toggle hidden">Switch Sequence</div>
   </div>
 
   <script>
@@ -385,21 +402,35 @@
       stopTimer();
     });
 
-    // Listen for Alt+Shift+K to toggle sequences
+    function toggleSequence() {
+      currentSequenceIndex = (currentSequenceIndex + 1) % SEQUENCES.length;
+      
+      // Reset state entirely
+      clearInterval(timerId);
+      isRunning = false;
+      timerId = null;
+      primaryBtn.textContent = 'Start';
+      stopBtn.classList.add('hidden');
+      resetPhase(0);
+    }
+
+    // Listen for Alt+Shift+K to toggle sequences (desktop)
     window.addEventListener('keydown', (event) => {
       if (event.altKey && event.shiftKey && event.code === 'KeyK') {
         event.preventDefault();
-        currentSequenceIndex = (currentSequenceIndex + 1) % SEQUENCES.length;
-        
-        // Reset state entirely
-        clearInterval(timerId);
-        isRunning = false;
-        timerId = null;
-        primaryBtn.textContent = 'Start';
-        stopBtn.classList.add('hidden');
-        resetPhase(0);
+        toggleSequence();
       }
     });
+
+    // Detect mobile/touch device and enable target button
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    if (isMobile) {
+      const toggleBtn = document.getElementById('sequence-toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.classList.remove('hidden');
+        toggleBtn.addEventListener('click', toggleSequence);
+      }
+    }
 
     // Passcode Gate Logic
     const isUnlocked = sessionStorage.getItem('app_unlocked') === 'true';
