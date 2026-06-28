@@ -115,97 +115,7 @@
       background-color: var(--accent-color);
     }
 
-    /* Passcode Gate Styling */
-    #passcode-gate {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
 
-    .passcode-container {
-      text-align: center;
-      max-width: 300px;
-      width: 100%;
-      padding: 2rem;
-      box-sizing: border-box;
-    }
-
-    .passcode-title {
-      font-size: 1.8rem;
-      font-weight: 300;
-      letter-spacing: -0.03em;
-      margin-bottom: 0.5rem;
-    }
-
-    .passcode-subtitle {
-      font-size: 0.9rem;
-      color: var(--muted-text);
-      margin-bottom: 2rem;
-      line-height: 1.4;
-    }
-
-    .passcode-input-wrapper {
-      position: relative;
-      margin-bottom: 1.25rem;
-      width: 100%;
-    }
-
-    #passcode-input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 1px solid var(--button-bg);
-      border-radius: 6px;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      outline: none;
-      box-sizing: border-box;
-      text-align: center;
-      letter-spacing: 0.15em;
-      transition: border-color 0.2s;
-    }
-
-    #passcode-input::placeholder {
-      letter-spacing: normal;
-    }
-
-    #passcode-input:focus {
-      border-color: var(--accent-color);
-    }
-
-    .passcode-btn {
-      width: 100%;
-      background-color: var(--button-bg);
-      color: var(--text-color);
-      font-weight: 500;
-      transition: background-color 0.2s;
-    }
-
-    .passcode-btn:hover {
-      background-color: var(--button-hover);
-    }
-
-    .passcode-btn:active {
-      background-color: var(--button-active);
-    }
-
-    #passcode-error {
-      color: #ff4d4d;
-      font-size: 0.85rem;
-      margin-top: 1rem;
-      min-height: 1.25rem;
-    }
 
     .mobile-sequence-toggle {
       font-size: 0.85rem;
@@ -226,22 +136,7 @@
 </head>
 <body>
 
-  <div id="passcode-gate">
-    <script>
-      if (sessionStorage.getItem('app_unlocked') === 'true') {
-        document.getElementById('passcode-gate').style.display = 'none';
-      }
-    </script>
-    <div class="passcode-container">
-      <div class="passcode-title">Private Space</div>
-      <div class="passcode-subtitle">Please enter the passcode to access this application.</div>
-      <div class="passcode-input-wrapper">
-        <input type="password" id="passcode-input" placeholder="••••••••" autocomplete="current-password" autofocus />
-      </div>
-      <button class="passcode-btn" id="passcode-submit-btn">Access</button>
-      <div id="passcode-error" class="hidden"></div>
-    </div>
-  </div>
+
 
   <div class="container">
     <div class="dots" id="dots-container">
@@ -432,56 +327,7 @@
       }
     }
 
-    // Passcode Gate Logic
-    const isUnlocked = sessionStorage.getItem('app_unlocked') === 'true';
-    if (isUnlocked) {
-      document.getElementById('passcode-gate').classList.add('hidden');
-    }
 
-    async function checkPasscode() {
-      const input = document.getElementById('passcode-input');
-      const submitBtn = document.getElementById('passcode-submit-btn');
-      const errorEl = document.getElementById('passcode-error');
-      
-      const entered = input.value;
-      if (!entered) return;
-
-      errorEl.classList.add('hidden');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Verifying...';
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ passcode: entered })
-        });
-        const data = await res.json();
-        if (data.success) {
-          sessionStorage.setItem('app_unlocked', 'true');
-          document.getElementById('passcode-gate').classList.add('hidden');
-        } else {
-          errorEl.textContent = data.error || 'Invalid passcode';
-          errorEl.classList.remove('hidden');
-          input.value = '';
-          input.focus();
-        }
-      } catch (err) {
-        console.error('Authentication error:', err);
-        errorEl.textContent = 'Connection error. Please try again.';
-        errorEl.classList.remove('hidden');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Access';
-      }
-    }
-
-    document.getElementById('passcode-submit-btn').addEventListener('click', checkPasscode);
-    document.getElementById('passcode-input').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        checkPasscode();
-      }
-    });
 
     // Initialize display
     resetPhase(0);
